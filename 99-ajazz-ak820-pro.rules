@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# AJAZZ keyboards - unprivileged hidraw access (Linux driver via ajazz_ctl.py)
+# Install with: sudo cp 99-ajazz-ak820-pro.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+# Sonix 0c45: 8006 (keyboard), 8009 (AK820 Pro), fefe (2.4G dongle)
+
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="8006", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="8009", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="fefe", MODE="0660", TAG+="uaccess"

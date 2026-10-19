@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AJAZZ AK820 Pro — Controle</title>
+<style>
+  :root {
+    --bg:#12141a; --panel:#1b1f2a; --fg:#e6e9f0; --muted:#8b93a7;
+    --acc:#5b8cff; --ok:#2ecc71; --bad:#e74c3c; --border:#2a2f3d;
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body {
+    margin:0; background:var(--bg); color:var(--fg);
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    overflow:hidden;
+  }
+  .app {
+    height:100vh; max-width:1560px; margin:0 auto;
+    padding:14px 18px; display:flex; flex-direction:column; gap:12px;
+  }
+
+  /* top bar */
+  .topbar { display:flex; align-items:center; justify-content:space-between;
+            gap:16px; flex:none; }
+  h1 { font-size:19px; margin:0; letter-spacing:.01em; }
+  .sub { color:var(--muted); font-size:12px; margin-top:1px; }
+  .actions { display:flex; align-items:center; gap:14px; }
+  .status { display:flex; align-items:center; gap:8px; font-size:13px;
+            color:var(--muted); }
+  .status #msg { max-width:42ch; white-space:nowrap; overflow:hidden;
+                 text-overflow:ellipsis; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--muted); flex:none; }
+  .dot.ok { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .dot.bad { background:var(--bad); box-shadow:0 0 8px var(--bad); }
+  .dot.busy { background:#f1c40f; animation:pulse .8s infinite alternate; }
+  @keyframes pulse { to { opacity:.35; } }
+  #apply {
+    background:var(--acc); color:#fff; border:0; border-radius:8px;
+    padding:9px 18px; font-size:14px; font-weight:600; cursor:pointer;
+    white-space:nowrap;
+  }
+  #apply:disabled { opacity:.5; cursor:wait; }
+
+  /* cards */
+  .card {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:13px 15px; min-height:0;
+  }
+  .card h2 { font-size:11px; text-transform:uppercase; letter-spacing:.09em;
+             color:var(--muted); margin:0 0 9px; font-weight:600; }
+  .sep { border-top:1px solid var(--border); margin:12px 0; }
+  label { display:block; font-size:12px; color:var(--muted); margin:9px 0 4px; }
+  select, input[type=color] {
+    width:100%; background:#0e1016; color:var(--fg);
+    border:1px solid var(--border); border-radius:6px; padding:7px 9px;
+    font-size:13px;
+  }
+  input[type=color] { height:34px; padding:3px; cursor:pointer; }
+  .sliderrow { display:flex; align-items:center; gap:10px; }
+  .sliderrow input[type=range] { flex:1; accent-color:var(--acc); }
+  .val { min-width:16px; text-align:right; font-variant-numeric:tabular-nums;
+         color:var(--fg); font-weight:600; font-size:13px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:2px 16px; }
+  .presets { display:flex; gap:6px; margin-top:7px; flex-wrap:wrap; }
+  .presets button {
+    background:#0e1016; color:var(--fg); border:1px solid var(--border);
+    border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer;
+  }
+  .presets button:hover { border-color:var(--acc); }
+  .hint { font-size:11.5px; color:var(--muted); margin-top:7px; line-height:1.4; }
+  code { background:#0e1016; padding:1px 4px; border-radius:4px; font-size:11px; }
+  details { margin-top:7px; }
+  summary { font-size:11.5px; color:var(--muted); cursor:pointer; }
+  textarea {
+    width:100%; background:#0e1016; color:var(--fg); border:1px solid var(--border);
+    border-radius:6px; padding:7px; font:11.5px/1.4 ui-monospace,monospace;
+    margin-top:7px;
+  }
+  .btn2 {
+    width:100%; margin-top:10px; background:#0e1016; color:var(--fg);
+    border:1px solid var(--border); border-radius:8px; padding:8px 12px;
+    font-size:13px; cursor:pointer;
+  }
+  .btn2:hover { border-color:var(--acc); }
+
+  /* visual keyboard */
+  .kbd-card { flex:none; }
+  .kbd-head { display:flex; align-items:baseline; justify-content:space-between;
+              gap:16px; margin-bottom:9px; }
+  .kbd-head h2 { margin:0; }
+  .kbd {
+    position:relative; width:100%; max-width:min(1400px, 110vh);
+    aspect-ratio:695 / 256; margin:0 auto; background:#0b0d12;
+    border:1px solid var(--border); border-radius:8px; overflow:hidden;
+  }
+  .kbd .key {
+    position:absolute; box-sizing:border-box; border-radius:4px;
+    border:1px solid rgba(0,0,0,.55);
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; line-height:1; color:rgba(0,0,0,.8);
+    background:#15171e; overflow:hidden; cursor:pointer; user-select:none;
+    transition:background .15s, box-shadow .15s, transform .06s;
+  }
+  .kbd .key span { pointer-events:none; }
+  .kbd .key.press { transform:scale(.9); box-shadow:0 0 14px 3px rgba(255,255,255,.5); }
+  .kbd .key.screen {
+    background:#05070a; border-color:#39404f; cursor:default;
+    box-shadow:inset 0 0 10px #000;
+  }
+  .kbd .key.screen::after {
+    content:"TFT"; font-size:8px; letter-spacing:.12em; color:#5b8cff;
+  }
+  .kbd .key.knob {
+    border-radius:50%; cursor:default;
+    background:radial-gradient(circle at 35% 30%, #5a5e68, #22242c 65%, #101117);
+    border:1px solid #0b0c10;
+    box-shadow:0 1px 3px rgba(0,0,0,.6), inset 0 1px 2px rgba(255,255,255,.12);
+  }
+
+  /* bottom panel */
+  .board { flex:1 1 auto; min-height:0;
+           display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .col { display:flex; flex-direction:column; gap:12px; min-height:0; }
+  .col .card { overflow:auto; }
+  .grow { flex:1 1 auto; }
+
+  /* narrow/short screens: fall back to scrolling instead of clipping */
+  @media (max-width:980px), (max-height:640px) {
+    html, body { height:auto; }
+    body { overflow:auto; }
+    .app { height:auto; }
+    .board { grid-template-columns:1fr; }
+    .kbd { max-width:100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div>
+      <h1>AJAZZ AK820 Pro</h1>
+      <div class="sub">Linux/hidraw • <span id="dev">…</span></div>
+    </div>
+    <div class="actions">
+      <div class="status"><span class="dot" id="dot"></span><span id="msg">ready</span></div>
+      <button id="apply">Apply to keyboard</button>
+    </div>
+  </header>
+
+  <section class="card kbd-card">
+    <div class="kbd-head">
+      <h2>Visual keyboard</h2>
+      <span class="hint" id="keyinfo" style="margin:0">click a key…</span>
+    </div>
+    <div id="kbd" class="kbd"></div>
+  </section>
+
+  <div class="board">
+    <!-- column 1: mode + color -->
+    <div class="col">
+      <section class="card grow">
+        <h2>Lighting mode</h2>
+        <select id="mode"></select>
+        <div class="presets" id="modepresets"></div>
+
+        <div class="sep"></div>
+        <h2>Color</h2>
+        <input type="color" id="color" value="#FF8800">
+        <div class="presets">
+          <button data-c="#FF0000">red</button>
+          <button data-c="#00FF00">green</button>
+          <button data-c="#0088FF">blue</button>
+          <button data-c="#FFFFFF">white</button>
+          <button data-c="rainbow">🌈 rainbow</button>
+        </div>
+        <div class="hint">In rainbow modes the color is ignored (the rainbow is built into the effect).</div>
+      </section>
+    </div>
+
+    <!-- column 2: fine tuning + raw payload -->
+    <div class="col">
+      <section class="card grow">
+        <h2>Fine tuning (bytes 8–11)</h2>
+        <div class="grid2">
+          <div>
+            <label>brightness <code>src[9]</code></label>
+            <div class="sliderrow"><input type="range" id="brightness" min="0" max="5" value="5"><span class="val" id="brightness_v">5</span></div>
+          </div>
+          <div>
+            <label>speed <code>src[10]</code></label>
+            <div class="sliderrow"><input type="range" id="speed" min="0" max="5" value="3"><span class="val" id="speed_v">3</span></div>
+          </div>
+          <div>
+            <label>colorful <code>src[8]</code></label>
+            <div class="sliderrow"><input type="range" id="colorful" min="0" max="5" value="0"><span class="val" id="colorful_v">0</span></div>
+          </div>
+          <div>
+            <label>direction <code>src[11]</code></label>
+            <div class="sliderrow">
+              <input type="checkbox" id="invert" style="flex:none;width:17px;height:17px;accent-color:var(--acc)">
+              <span class="hint" style="margin:0">inverted</span>
+            </div>
+          </div>
+        </div>
+        <div class="hint">src[8]=colorful (0=solid, &gt;0=rainbow), src[9]=brightness,
+          src[10]=speed, src[11]=direction (0 normal, 2 inverted).</div>
+
+        <div class="sep"></div>
+        <details>
+          <summary>send raw payload (experimental)</summary>
+          <textarea id="raw" rows="2" placeholder="e.g. 04 18"></textarea>
+          <button id="rawsend" class="btn2" style="margin-top:6px">send</button>
+        </details>
+      </section>
+    </div>
+
+    <!-- column 3: TFT screen + sleep -->
+    <div class="col">
+      <section class="card">
+        <h2>TFT screen (0.85")</h2>
+        <button id="clock" class="btn2" style="margin-top:0">🕒 Sync date/time</button>
+        <div class="hint" id="clockmsg"></div>
+      </section>
+
+      <section class="card grow">
+        <h2>Sleep Time</h2>
+        <div class="hint" style="margin-top:0">Backlight/screen turn off after idle.
+          <b>Wireless modes only (BT/2.4G)</b> — on USB the host keeps the keyboard awake.</div>
+        <select id="sleep" style="margin-top:9px"></select>
+        <button id="sleepapply" class="btn2">💤 Apply Sleep Time</button>
+        <div class="hint" id="sleepmsg"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let busy = false;
+
+// ---------- initial load ----------
+async function init() {
+  const st = await (await fetch('/api/state')).json();
+  // modes
+  const sel = $('mode');
+  for (const [id, name] of Object.entries(st.modes || {})) {
+    const o = document.createElement('option');
+    o.value = id; o.textContent = `${id} — ${name}`;
+    sel.appendChild(o);
+  }
+  // presets for the most used modes
+  const presets = [[1,'🌈 static'],[9,'💧 ripple'],[10,'↔ wave'],[7,'🫁 breathing'],[0,'⏻ off']];
+  for (const [id, label] of presets) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.onclick = () => { sel.value = id; updatePreview(); send(); };
+    $('modepresets').appendChild(b);
+  }
+  // sleep time
+  const ssel = $('sleep');
+  for (const [id, name] of Object.entries(st.sleep_modes || {})) {
+    const o = document.createElement('option');
+    o.value = id; o.textContent = `${id} — ${name}`;
+    ssel.appendChild(o);
+  }
+  if (st.sleep !== null && st.sleep !== undefined) ssel.value = st.sleep;
+  // saved state
+  applyState(st);
+  // visual keyboard
+  await buildKeyboard();
+}
+
+function applyState(st) {
+  if (st.mode !== undefined) $('mode').value = st.mode;
+  if (st.color) $('color').value = st.color;
+  for (const k of ['brightness','speed','colorful'])
+    if (st[k] !== undefined) { $(k).value = st[k]; $(k+'_v').textContent = st[k]; }
+  if (st.direction !== undefined) $('invert').checked = (+st.direction === 2);
+  if (st.device) $('dev').textContent = st.device;
+}
+
+// ---------- visual keyboard ----------
+let LAYOUT = null;
+const REACTIVE_MODES = new Set([2, 13, 14, 15]);
+
+function keyLabel(name) {
+  const map = {
+    Shift_L:'Shift', Shift_R:'Shift', Ctrl_L:'Ctrl', Ctrl_R:'Ctrl',
+    Win_L:'Win', Alt_L:'Alt', Alt_R:'Alt', CapsLock:'Caps',
+    '~`':'~', '!1':'1', '@2':'2', '#3':'3', '$4':'4', '%5':'5', '^6':'6',
+    '&7':'7', '*8':'8', '(9':'9', ')0':'0', '_-':'-', '+=':'=',
+    '{[':'[', '}}':']', '|\\':'\\', ':;':';', '"\'':"'", ',<':',',
+    '.>':'.', '/?':'/', 'Backspace':'⌫', 'CapsLock':'Caps',
+    'page up':'PgUp', 'page down':'PgDn', 'del':'Del', 'home':'Home',
+    'insert':'Ins', 'end':'End',
+  };
+  if (map[name] !== undefined) return map[name];
+  return name.length > 5 ? name.slice(0, 5) : name;
+}
+
+function hexToRGB(hexHex) {
+  hexHex = (hexHex || '#FF8800').replace('#', '');
+  return [0, 2, 4].map(i => parseInt(hexHex.substr(i, 2), 16));
+}
+
+async function buildKeyboard() {
+  const lay = await (await fetch('/api/layout')).json();
+  LAYOUT = lay;
+  const box = $('kbd');
+  box.innerHTML = '';
+  // crop the empty area around the keys (the vendor XML has large margins)
+  const pad = 12;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const k of lay.keys) {
+    minX = Math.min(minX, k.left);
+    minY = Math.min(minY, k.top);
+    maxX = Math.max(maxX, k.left + k.width);
+    maxY = Math.max(maxY, k.top + k.height);
+  }
+  if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 800; maxY = 300; }
+  minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+  const W = maxX - minX, H = maxY - minY;
+  box.style.aspectRatio = `${W} / ${H}`;
+  for (const k of lay.keys) {
+    const d = document.createElement('div');
+    d.className = 'key' + (k.kind ? ' ' + k.kind : '');
+    d.style.left = (100 * (k.left - minX) / W) + '%';
+    d.style.top = (100 * (k.top - minY) / H) + '%';
+    d.style.width = (100 * k.width / W) + '%';
+    d.style.height = (100 * k.height / H) + '%';
+    if (k.kind) {
+      // screen and knob are decorative (they do not light up or respond to clicks)
+      d.title = k.kind === 'screen' ? '0.85" TFT screen' : 'Volume knob';
+    } else {
+      const s = document.createElement('span');
+      s.textContent = keyLabel(k.name);
+      d.appendChild(s);
+      d.onclick = () => pressKey(d, k);
+    }
+    box.appendChild(d);
+  }
+  updatePreview();
+}
+
+function updatePreview() {
+  if (!LAYOUT) return;
+  const mode = +$('mode').value;
+  const bright = +$('brightness').value;
+  const colorful = +$('colorful').value;
+  const [r, g, b] = hexToRGB($('color').value);
+  const off = mode === 0 || REACTIVE_MODES.has(mode);    // apagado em repouso
+  const alpha = 0.18 + bright / 5 * 0.72;
+  const keys = $('kbd').children;
+  for (let i = 0; i < keys.length; i++) {
+    const d = keys[i];
+    if (d.classList.contains('press')) continue;
+    if (d.classList.contains('screen') || d.classList.contains('knob')) continue;
+    let col = 'rgb(21,23,30)';
+    if (!off) {
+      if (colorful > 0) {
+        const hue = Math.round(360 * i / keys.length);
+        col = `hsla(${hue},85%,60%,${alpha})`;
+      } else {
+        col = `rgba(${r},${g},${b},${alpha})`;
+      }
+    }
+    d.style.background = col;
+  }
+}
+
+function pressKey(d, k) {
+  if (k.kind) return;                    // screen/knob are not keys
+  $('keyinfo').textContent =
+    `${k.name}  •  key_index ${k.key_index}  •  light_index ${k.light_index}  •  ${k.code}`;
+  const [r, g, b] = hexToRGB($('color').value);
+  d.style.background = `rgba(${r},${g},${b},0.95)`;
+  d.classList.add('press');
+  clearTimeout(d._t);
+  d._t = setTimeout(() => { d.classList.remove('press'); updatePreview(); }, 450);
+}
+
+async function sendSleep() {
+  $('sleepmsg').textContent = 'sending…';
+  try {
+    const r = await fetch('/api/sleep', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: +$('sleep').value })
+    });
+    const j = await r.json();
+    if (j.ack) {
+      $('sleepmsg').textContent = '✅ applied and saved on the keyboard (wireless modes only)';
+      setStatus('ok', 'sleep time applied');
+    } else {
+      $('sleepmsg').textContent = `❌ no ACK ${j.error || ''} — connect via cable/dongle`;
+      setStatus('bad', 'sleep time failed');
+    }
+  } catch (e) {
+    $('sleepmsg').textContent = 'error: ' + e;
+  }
+}
+
+// ---------- sending ----------
+function payload() {
+  return {
+    mode: +$('mode').value,
+    color: $('color').value,
+    brightness: +$('brightness').value,
+    speed: +$('speed').value,
+    direction: $('invert').checked ? 2 : 0,
+    colorful: +$('colorful').value,
+  };
+}
+
+function setStatus(kind, msg) {
+  $('dot').className = 'dot ' + kind;
+  $('msg').textContent = msg;
+}
+
+async function send() {
+  if (busy) return;
+  busy = true;
+  $('apply').disabled = true;
+  setStatus('busy', 'sending…');
+  try {
+    const r = await fetch('/api/light', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload())
+    });
+    const j = await r.json();
+    if (j.ack) setStatus('ok', `applied ✅ (${j.tries}×, ${j.device || ''})`);
+    else setStatus('bad', `no ACK ❌ ${j.error || ''} — try again`);
+    if (j.device) $('dev').textContent = j.device;
+  } catch (e) {
+    setStatus('bad', 'network error: ' + e);
+  } finally {
+    busy = false;
+    $('apply').disabled = false;
+  }
+}
+
+async function sendRaw() {
+  setStatus('busy', 'sending raw payload…');
+  try {
+    const r = await fetch('/raw', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({payload: $('raw').value, ack: true})
+    });
+    const j = await r.json();
+    setStatus(j.ok ? 'ok' : 'bad', j.msg);
+  } catch (e) { setStatus('bad', 'error: ' + e); }
+}
+
+// ---------- bindings ----------
+for (const k of ['brightness','speed','colorful'])
+  $(k).addEventListener('input', e => {
+    $(k+'_v').textContent = e.target.value;
+    updatePreview();
+  });
+
+$('apply').onclick = send;
+$('rawsend').onclick = sendRaw;
+$('sleepapply').onclick = sendSleep;
+
+// ---------- TFT screen: clock sync ----------
+async function syncClock() {
+  $('clockmsg').textContent = 'sending…';
+  try {
+    const r = await fetch('/api/clock', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({index:0})
+    });
+    const j = await r.json();
+    if (j.ack) { $('clockmsg').textContent = `✅ screen clock = ${j.clock}`; setStatus('ok', 'clock synced'); }
+    else { $('clockmsg').textContent = `❌ no ACK ${j.error || ''}`; setStatus('bad', 'clock failed'); }
+  } catch (e) {
+    $('clockmsg').textContent = 'error: ' + e;
+  }
+}
+$('clock').onclick = syncClock;
+
+// auto-send on slider release / mode change (quick feedback)
+for (const k of ['mode','color','invert'])
+  $(k).addEventListener('change', send);
+for (const k of ['brightness','speed','colorful'])
+  $(k).addEventListener('change', send);
+
+// the keyboard preview follows mode/color/brightness
+for (const k of ['mode','color','brightness','speed','colorful'])
+  $(k).addEventListener('change', updatePreview);
+for (const k of ['brightness','colorful'])
+  $(k).addEventListener('input', updatePreview);
+
+// color presets
+document.querySelectorAll('.presets button[data-c]').forEach(b => {
+  b.onclick = () => {
+    if (b.dataset.c === 'rainbow') { $('colorful').value = 5; $('colorful_v').textContent = '5'; }
+    else $('color').value = b.dataset.c;
+    updatePreview();
+    send();
+  };
+});
+
+// Enter in the textarea sends
+$('raw').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendRaw(); }});
+
+init();
+</script>
+</body>
+</html>
