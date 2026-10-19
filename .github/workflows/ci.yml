@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python syntax
+        run: python -m compileall -q ajazz_ctl.py server.py tools
+
+      - name: Validate the derived layout asset
+        run: |
+          python - <<'PY'
+          import json
+          layout = json.load(open("assets/ak820-pro-layout.json", encoding="utf-8"))
+          assert layout["keys"], "layout has no keys"
+          assert all("left" in k and "top" in k for k in layout["keys"])
+          print(f"{len(layout['keys'])} keys, layout OK")
+          PY
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: JavaScript syntax
+        run: |
+          python - <<'PY'
+          import re
+          html = open("static/index.html", encoding="utf-8").read()
+          js = re.search(r"<script>(.*?)</script>", html, re.S).group(1)
+          open("/tmp/ui.js", "w", encoding="utf-8").write(js)
+          PY
+          node --check /tmp/ui.js

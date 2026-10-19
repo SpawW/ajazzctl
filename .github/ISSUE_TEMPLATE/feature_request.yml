@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest an idea or a new supported device
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: A clear description of the use case or limitation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How do you imagine it working (CLI flag, UI control, protocol command)?
+    validations:
+      required: true
+
+  - type: input
+    id: hardware
+    attributes:
+      label: Keyboard model / VID:PID (if relevant)
+      placeholder: "e.g. AJAZZ AK820 Pro, 0c45:8009"
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context

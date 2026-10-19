@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a problem with ajazzctl
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please include as much
+        hardware/protocol detail as you can — it makes debugging much easier.
+
+  - type: input
+    id: model
+    attributes:
+      label: Keyboard model
+      placeholder: "e.g. AJAZZ AK820 Pro"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection mode
+      options:
+        - USB (wired)
+        - 2.4 GHz dongle
+        - Bluetooth
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution and kernel
+      placeholder: "e.g. Ubuntu 24.04, kernel 6.8"
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "e.g. 3.12.3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Describe the behavior and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: commands
+    attributes:
+      label: Command output
+      description: Paste the output of the failing command and of `./ajazz_ctl.py list` / `probe`.
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Logs, screenshots, dmesg, udev rule status, etc.
